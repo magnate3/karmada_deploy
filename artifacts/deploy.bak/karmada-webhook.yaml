@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karmada-webhook
+  namespace: karmada-system
+  labels:
+    app: karmada-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: karmada-webhook
+  template:
+    metadata:
+      labels:
+        app: karmada-webhook
+    spec:
+      serviceAccountName: karmada-webhook
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+      nodeSelector:
+        kubernetes.io/hostname: cloud
+      containers:
+        - name: karmada-webhook
+          image: ubuntu:5000/karmada-webhook:v0.7.0-111-g8effddd
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/karmada-webhook
+            - --kubeconfig=/etc/kubeconfig
+            - --bind-address=0.0.0.0
+            - --secure-port=8443
+            - --cert-dir=/var/serving-cert
+            - --v=4
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            - name: kubeconfig
+              subPath: kubeconfig
+              mountPath: /etc/kubeconfig
+            - name: cert
+              mountPath: /var/serving-cert
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8443
+              scheme: HTTPS
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: kubeconfig
+        - name: cert
+          secret:
+            secretName: webhook-cert
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: karmada-webhook
+  namespace: karmada-system
+spec:
+  selector:
+    app: karmada-webhook
+  ports:
+    - port: 443
+      targetPort: 8443

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karmada-scheduler
+  namespace: karmada-system
+  labels:
+    app: karmada-scheduler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: karmada-scheduler
+  template:
+    metadata:
+      labels:
+        app: karmada-scheduler
+    spec:
+      serviceAccountName: karmada-scheduler
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+      nodeSelector:
+         kubernetes.io/hostname: cloud
+      containers:
+        - name: karmada-scheduler
+          image: ubuntu:5000/karmada-scheduler:v0.7.0-111-g8effddd
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/karmada-scheduler
+            - --kubeconfig=/etc/kubeconfig
+            - --bind-address=0.0.0.0
+            - --secure-port=10351
+            - --failover=true
+            - --v=4
+          volumeMounts:
+            - name: kubeconfig
+              subPath: kubeconfig
+              mountPath: /etc/kubeconfig
+      volumes:
+        - name: kubeconfig
+          secret:
+            secretName: kubeconfig
