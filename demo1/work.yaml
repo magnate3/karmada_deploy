@@ -1,0 +1,15 @@
+apiVersion: work.karmada.io/v1alpha1
+kind: Work
+metadata:
+  name: work-foo
+  namespace: karmada-es-k8s81
+spec:
+  workload:
+    manifests:
+    - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        labels:      
+          app: nginx
+        name: nginx
+        namespace: default
